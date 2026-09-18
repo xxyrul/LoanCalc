@@ -30,7 +30,6 @@ class UpdaterScreen extends StatefulWidget {
 class _UpdaterScreenState extends State<UpdaterScreen> {
   String _currentVersion = '1.0.0';
   String _currentBuildNumber = '1';
-  late TextEditingController _repoController;
 
   UpdaterStatus _status = UpdaterStatus.idle;
   UpdateReleaseInfo? _updateInfo;
@@ -43,28 +42,19 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
   @override
   void initState() {
     super.initState();
-    _repoController = TextEditingController(text: UpdateService.defaultRepo);
     _initData();
   }
 
   Future<void> _initData() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      final savedRepo = await UpdateService.getTargetRepo();
       if (mounted) {
         setState(() {
           _currentVersion = info.version;
           _currentBuildNumber = info.buildNumber;
-          _repoController.text = savedRepo;
         });
       }
     } catch (_) {}
-  }
-
-  @override
-  void dispose() {
-    _repoController.dispose();
-    super.dispose();
   }
 
   Future<void> _checkForUpdates() async {
@@ -74,11 +64,8 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
       _errorMessage = null;
     });
 
-    final repo = _repoController.text.trim();
-    await UpdateService.setTargetRepo(repo);
-
     try {
-      final info = await UpdateService.checkForUpdate(customRepo: repo);
+      final info = await UpdateService.checkForUpdate();
       if (!mounted) return;
 
       if (info != null) {
@@ -252,56 +239,73 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
 
             const SizedBox(height: 12),
 
-            // 2. GitHub Target Repository Configuration
+            // 2. Official Update Channel Badge (Locked & Read-only)
             Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
+                side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.code_rounded, size: 20, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          AppStrings.tr('githubRepo', widget.lang),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.security_update_good_rounded, size: 20, color: theme.colorScheme.onPrimaryContainer),
                     ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _repoController,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. username/LoanCalc',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        suffixIcon: IconButton(
-                          tooltip: 'Save Repository',
-                          icon: const Icon(Icons.check_circle_outline, size: 20),
-                          onPressed: () {
-                            UpdateService.setTargetRepo(_repoController.text.trim());
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Target repository saved!'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                        ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppStrings.tr('githubRepo', widget.lang),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            UpdateService.defaultRepo,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Checks https://api.github.com/repos/${_repoController.text.trim()}/releases/latest',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 12,
+                            color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF14532D),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Official',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF14532D),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
