@@ -30,7 +30,7 @@ class UpdateReleaseInfo {
 }
 
 class UpdateService {
-  static const String defaultRepo = 'norazrul7/LoanCalc';
+  static const String defaultRepo = 'xxyrul/LoanCalc';
   static const String prefRepoKey = 'github_update_repo';
 
   static Future<String> getTargetRepo() async {
