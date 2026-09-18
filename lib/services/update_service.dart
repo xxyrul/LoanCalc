@@ -35,7 +35,12 @@ class UpdateService {
 
   static Future<String> getTargetRepo() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(prefRepoKey) ?? defaultRepo;
+    final saved = prefs.getString(prefRepoKey);
+    if (saved == null || saved.contains('norazrul7/')) {
+      await prefs.setString(prefRepoKey, defaultRepo);
+      return defaultRepo;
+    }
+    return saved;
   }
 
   static Future<void> setTargetRepo(String repo) async {
