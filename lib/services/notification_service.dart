@@ -97,4 +97,60 @@ class NotificationService {
       return null;
     }
   }
+
+  /// Checks whether notifications are enabled in Android system settings
+  static Future<bool> areNotificationsEnabled() async {
+    try {
+      final bool? enabled = await _channel.invokeMethod<bool>('areNotificationsEnabled');
+      return enabled ?? true;
+    } catch (e) {
+      debugPrint('Error checking if notifications are enabled: $e');
+      return true;
+    }
+  }
+
+  /// Opens the Android system notification settings page for this app
+  static Future<void> openNotificationSettings() async {
+    try {
+      await _channel.invokeMethod('openNotificationSettings');
+    } catch (e) {
+      debugPrint('Error opening notification settings: $e');
+    }
+  }
+
+  /// Dispatches an immediate test notification with sound and vibration
+  static Future<void> sendTestNotification({required String lang}) async {
+    try {
+      final title = lang == 'bm' ? '🔔 Notifikasi Ujian LoanCalc' : '🔔 LoanCalc Test Notification';
+      final body = lang == 'bm'
+          ? 'Hebat! Notifikasi kemas kini sedia berfungsi dengan baik di peranti anda.'
+          : 'Great! Update notifications are functioning properly on your device.';
+      await _channel.invokeMethod('sendTestNotification', {
+        'title': title,
+        'body': body,
+      });
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
+    }
+  }
+
+  /// Schedules periodic background update check with Android WorkManager
+  static Future<void> scheduleBackgroundWorker({int intervalHours = 4}) async {
+    try {
+      await _channel.invokeMethod('scheduleBackgroundWorker', {
+        'intervalHours': intervalHours,
+      });
+    } catch (e) {
+      debugPrint('Error scheduling background worker: $e');
+    }
+  }
+
+  /// Cancels background worker
+  static Future<void> cancelBackgroundWorker() async {
+    try {
+      await _channel.invokeMethod('cancelBackgroundWorker');
+    } catch (e) {
+      debugPrint('Error canceling background worker: $e');
+    }
+  }
 }

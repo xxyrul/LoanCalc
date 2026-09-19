@@ -7,13 +7,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.TimeUnit
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.loancalc.loan_calc/notifications"
@@ -35,6 +43,28 @@ class MainActivity : FlutterActivity() {
                     intent?.removeExtra("route")
                     result.success(route)
                 }
+                "areNotificationsEnabled" -> {
+                    val enabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+                    result.success(enabled)
+                }
+                "openNotificationSettings" -> {
+                    try {
+                        val intent = Intent().apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                            } else {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", packageName, null)
+                            }
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SETTINGS_ERROR", e.message, null)
+                    }
+                }
                 "showUpdateNotification" -> {
                     val title = call.argument<String>("title") ?: "New Update Available"
                     val body = call.argument<String>("body") ?: "A new version of LoanCalc is available."
@@ -42,9 +72,44 @@ class MainActivity : FlutterActivity() {
                     showUpdateNotification(title, body, route)
                     result.success(true)
                 }
+                "sendTestNotification" -> {
+                    val title = call.argument<String>("title") ?: "🔔 Notifikasi Ujian LoanCalc"
+                    val body = call.argument<String>("body") ?: "Notifikasi kemas kini sedia berfungsi dengan baik!"
+                    showUpdateNotification(title, body, "updater")
+                    result.success(true)
+                }
                 "requestNotificationPermission" -> {
                     requestNotificationPermission()
                     result.success(true)
+                }
+                "scheduleBackgroundWorker" -> {
+                    try {
+                        val intervalHours = (call.argument<Int>("intervalHours") ?: 4).coerceAtLeast(1)
+                        val constraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                        val workRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
+                            intervalHours.toLong(),
+                            TimeUnit.HOURS
+                        ).setConstraints(constraints).build()
+
+                        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                            "loancalc_update_check",
+                            ExistingPeriodicWorkPolicy.UPDATE,
+                            workRequest
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("WORKER_ERROR", e.message, null)
+                    }
+                }
+                "cancelBackgroundWorker" -> {
+                    try {
+                        WorkManager.getInstance(applicationContext).cancelUniqueWork("loancalc_update_check")
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("WORKER_ERROR", e.message, null)
+                    }
                 }
                 else -> result.notImplemented()
             }

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../i18n/app_strings.dart';
 import '../models/calculator_models.dart';
+import '../services/notification_service.dart';
 import '../services/update_service.dart';
 import '../widgets/agent_dialog.dart';
 import 'updater_screen.dart';
@@ -34,17 +35,44 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  String _currentVersion = '1.0.2';
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
+  String _currentVersion = '1.0.3';
   bool _autoCheckUpdates = true;
+  bool _updateNotificationsEnabled = true;
+  bool _notificationsAllowed = true;
+  int _checkIntervalHours = 4;
   late AgentProfile? _agent;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _agent = widget.agentProfile;
     _loadPackageInfo();
     _loadPreferences();
+    _checkNotificationStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotificationStatus();
+    }
+  }
+
+  Future<void> _checkNotificationStatus() async {
+    final allowed = await NotificationService.areNotificationsEnabled();
+    if (mounted) {
+      setState(() {
+        _notificationsAllowed = allowed;
+      });
+    }
   }
 
   Future<void> _loadPackageInfo() async {
@@ -63,6 +91,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() {
         _autoCheckUpdates = prefs.getBool('auto_check_updates') ?? true;
+        _updateNotificationsEnabled = prefs.getBool('update_notifications_enabled') ?? true;
+        _checkIntervalHours = prefs.getInt('update_check_interval_hours') ?? 4;
       });
     }
   }
@@ -72,6 +102,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('auto_check_updates', value);
     setState(() => _autoCheckUpdates = value);
+    if (value && _updateNotificationsEnabled) {
+      await NotificationService.scheduleBackgroundWorker(intervalHours: _checkIntervalHours);
+    } else if (!value) {
+      await NotificationService.cancelBackgroundWorker();
+    }
+  }
+
+  Future<void> _setUpdateNotificationsEnabled(bool value) async {
+    HapticFeedback.selectionClick();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('update_notifications_enabled', value);
+    setState(() => _updateNotificationsEnabled = value);
+    if (value && _autoCheckUpdates) {
+      await NotificationService.scheduleBackgroundWorker(intervalHours: _checkIntervalHours);
+    } else {
+      await NotificationService.cancelBackgroundWorker();
+    }
+  }
+
+  Future<void> _setCheckInterval(int hours) async {
+    HapticFeedback.selectionClick();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('update_check_interval_hours', hours);
+    setState(() => _checkIntervalHours = hours);
+    if (_autoCheckUpdates && _updateNotificationsEnabled) {
+      await NotificationService.scheduleBackgroundWorker(intervalHours: hours);
+    }
+  }
+
+  Future<void> _sendTestNotification() async {
+    HapticFeedback.lightImpact();
+    await NotificationService.sendTestNotification(lang: widget.lang);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(AppStrings.tr('testNotificationSent', widget.lang))),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openSystemNotificationSettings() async {
+    HapticFeedback.selectionClick();
+    await NotificationService.openNotificationSettings();
   }
 
   void _openAgentDialog() {
@@ -233,7 +317,190 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 14),
 
-          // 3. System & Updates Card
+          // 3. Notification Settings Card
+          _buildCard(
+            theme: theme,
+            title: AppStrings.tr('notificationSettings', widget.lang),
+            icon: Icons.notifications_active_outlined,
+            children: [
+              // Permission Status Banner
+              if (!_notificationsAllowed)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade900.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              AppStrings.tr('notificationsDisabled', widget.lang),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        AppStrings.tr('enableNotificationsPrompt', widget.lang),
+                        style: TextStyle(fontSize: 11, height: 1.3, color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber.shade800,
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: _openSystemNotificationSettings,
+                          icon: const Icon(Icons.settings_outlined, size: 16),
+                          label: Text(
+                            AppStrings.tr('openSettings', widget.lang),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          AppStrings.tr('notificationsEnabled', widget.lang),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF047857),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        onPressed: _openSystemNotificationSettings,
+                        child: Text(
+                          AppStrings.tr('openSettings', widget.lang),
+                          style: TextStyle(fontSize: 11, color: theme.colorScheme.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Switch for update push alerts
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: Icon(Icons.campaign_outlined, color: theme.colorScheme.primary),
+                title: Text(
+                  AppStrings.tr('notifyNewUpdates', widget.lang),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  AppStrings.tr('notifyNewUpdatesDesc', widget.lang),
+                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                ),
+                value: _updateNotificationsEnabled,
+                onChanged: _setUpdateNotificationsEnabled,
+              ),
+
+              if (_updateNotificationsEnabled) ...[
+                const Divider(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.tr('checkFrequency', widget.lang),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<int>(
+                          showSelectedIcon: false,
+                          segments: [
+                            ButtonSegment<int>(
+                              value: 1,
+                              label: Text(
+                                AppStrings.tr('freq1Hour', widget.lang),
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            ButtonSegment<int>(
+                              value: 4,
+                              label: Text(
+                                AppStrings.tr('freq4Hours', widget.lang),
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            ButtonSegment<int>(
+                              value: 24,
+                              label: Text(
+                                AppStrings.tr('freqDaily', widget.lang),
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                          selected: {_checkIntervalHours},
+                          onSelectionChanged: (set) => _setCheckInterval(set.first),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 8),
+
+              // Send Test Notification
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onPressed: _sendTestNotification,
+                icon: const Icon(Icons.notifications_none_rounded, size: 18),
+                label: Text(
+                  AppStrings.tr('sendTestNotification', widget.lang),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // 4. System & Updates Card
           _buildCard(
             theme: theme,
             title: AppStrings.tr('systemAndUpdates', widget.lang),
