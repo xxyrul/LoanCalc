@@ -149,8 +149,8 @@ class _MainHomeScreenState extends State<MainHomeScreen>
 
   Future<void> _checkUpdateOnResume() async {
     final prefs = await SharedPreferences.getInstance();
-    final autoCheck = prefs.getBool('auto_check_updates') ?? true;
-    if (!autoCheck) return;
+    final notifEnabled = prefs.getBool('update_notifications_enabled') ?? true;
+    if (!notifEnabled) return;
 
     if (_lastUpdateCheckTime != null &&
         DateTime.now().difference(_lastUpdateCheckTime!).inMinutes < 10) {
@@ -178,15 +178,10 @@ class _MainHomeScreenState extends State<MainHomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final prefs = await SharedPreferences.getInstance();
-      final autoCheck = prefs.getBool('auto_check_updates') ?? true;
       final notifEnabled = prefs.getBool('update_notifications_enabled') ?? true;
-      final interval = prefs.getInt('update_check_interval_hours') ?? 4;
 
-      if (autoCheck && notifEnabled) {
-        await NotificationService.scheduleBackgroundWorker(intervalHours: interval);
-      }
-
-      if (autoCheck) {
+      if (notifEnabled) {
+        await NotificationService.scheduleBackgroundWorker();
         _lastUpdateCheckTime = DateTime.now();
         final update = await NotificationService.checkForUpdateAndNotify(lang: widget.lang);
         if (update != null && mounted) {
