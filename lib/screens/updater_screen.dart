@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -175,28 +176,6 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'Test Push Notification',
-            icon: const Icon(Icons.notifications_active_outlined),
-            onPressed: () async {
-              await NotificationService.showUpdateNotification(
-                title: '${AppStrings.tr('updateNotificationTitle', widget.lang)} (v1.0.2)',
-                body: AppStrings.tr('updateNotificationBody', widget.lang),
-                route: 'updater',
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🔔 Push notification sent to system tray!'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -397,7 +376,7 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
 
             const SizedBox(height: 20),
 
-            // 5. Release Instructions Info Card
+            // 5. User-Facing Update Info Card
             Card(
               elevation: 0,
               color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -412,20 +391,21 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, size: 18, color: theme.colorScheme.primary),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'How GitHub Releases Work',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        Icon(Icons.verified_user_outlined, size: 18, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.lang == 'bm' ? 'Mengenai Kemas Kini LoanCalc' : 'About LoanCalc Updates',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '1. Bump version in code (e.g. 1.1.0).\n'
-                      '2. Build release APK with "flutter build apk --release".\n'
-                      '3. On GitHub, create a release tagged "v1.1.0" and attach "LoanCalc.apk".\n'
-                      '4. Users open this page and tap "Check for Updates" to install automatically.',
+                      widget.lang == 'bm'
+                          ? 'Aplikasi ini memeriksa versi terbaharu secara automatik di latar belakang. '
+                            'Formula pinjaman perumahan, kadar faedah bank, dan pelepasan duti setem sentiasa dikemas kini terus ke peranti anda.'
+                          : 'LoanCalc automatically checks for newer releases in the background. '
+                            'Latest bank loan packages, interest rates, and stamp duty rules are delivered seamlessly Over-The-Air.',
                       style: TextStyle(
                         fontSize: 12,
                         height: 1.5,
@@ -436,6 +416,8 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
                 ),
               ),
             ),
+
+            SizedBox(height: max(32.0, MediaQuery.of(context).padding.bottom + 24.0)),
           ],
         ),
       ),

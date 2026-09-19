@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -283,54 +284,63 @@ class _LppsaTabState extends State<LppsaTab> {
             const SizedBox(height: 16),
 
             // 4. Actions
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () {
-                final text = ShareService.formatLppsaWhatsApp(
-                  res: res,
-                  lang: widget.lang,
-                  agent: widget.agentProfile,
-                );
-                ShareService.launchWhatsApp(text);
-              },
-              icon: const Icon(Icons.send_rounded),
-              label: Text(
-                AppStrings.tr('shareWhatsApp', widget.lang),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () {
-                final text = ShareService.formatLppsaWhatsApp(
-                  res: res,
-                  lang: widget.lang,
-                  agent: widget.agentProfile,
-                );
-                Clipboard.setData(ClipboardData(text: text));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(AppStrings.tr('copied', widget.lang)),
-                    behavior: SnackBarBehavior.floating,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF128C7E),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shadowColor: const Color(0xFF128C7E).withValues(alpha: 0.35),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                );
-              },
-              icon: const Icon(Icons.copy_rounded, size: 18),
-              label: Text(AppStrings.tr('copyLppsa', widget.lang)),
+                  onPressed: () {
+                    final text = ShareService.formatLppsaWhatsApp(
+                      res: res,
+                      lang: widget.lang,
+                      agent: widget.agentProfile,
+                    );
+                    ShareService.launchWhatsApp(text);
+                  },
+                  icon: const Icon(Icons.send_rounded, size: 20),
+                  label: Text(
+                    AppStrings.tr('shareWhatsApp', widget.lang),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.8), width: 1.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () {
+                    final text = ShareService.formatLppsaWhatsApp(
+                      res: res,
+                      lang: widget.lang,
+                      agent: widget.agentProfile,
+                    );
+                    Clipboard.setData(ClipboardData(text: text));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(AppStrings.tr('copied', widget.lang)),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: Text(
+                    AppStrings.tr('copyLppsa', widget.lang),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: max(36.0, MediaQuery.of(context).padding.bottom + 28.0)),
           ],
         ),
       ),

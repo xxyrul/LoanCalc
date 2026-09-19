@@ -121,8 +121,10 @@ class CalculatorEngine {
     final double standardLoanStampDuty = baseLoanAmount > 0 ? baseLoanAmount * 0.005 : 0.0;
     final double effectiveLoanStampDuty = freeLoanStampDuty ? 0.0 : standardLoanStampDuty;
 
-    // Bank Valuation Fee estimation (~0.3% of value, min RM1,000)
-    final double standardValuationFee = max(1000.0, propertyPrice * 0.003);
+    // Bank Valuation Fee estimation (~0.3% of value, min RM1,000) - Only applicable for Subsale
+    final double standardValuationFee = category == PropertyCategory.newLaunch
+        ? 0.0
+        : max(1000.0, propertyPrice * 0.003);
 
     // --- INSURANCE & TAKAFUL CALCULATIONS (CLTT / MRTT & LTHT / FIRE) ---
     final int clampedAge = min(65, max(20, borrowerAge));
@@ -184,7 +186,9 @@ class CalculatorEngine {
 
     final double upfrontSpaCost = effectiveSpaStampDuty + effectiveSpaLegal;
     final double upfrontLoanCost = (financeLoanDoc ? 0.0 : (effectiveLoanLegal + effectiveLoanStampDuty));
-    final double upfrontValuationCost = (financeValuation ? 0.0 : standardValuationFee);
+    final double upfrontValuationCost = (category == PropertyCategory.newLaunch || financeValuation)
+        ? 0.0
+        : standardValuationFee;
     final double upfrontInsuranceCost = (isClttFinanced ? 0.0 : clttMrttAmount) +
         (isLthtFinanced ? 0.0 : (customLthtAmount != null && customLthtAmount > 0 ? customLthtAmount : fireInsuranceAnnual));
 

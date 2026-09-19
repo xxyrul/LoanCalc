@@ -218,7 +218,7 @@ class _MortgageTabState extends State<MortgageTab> {
             // 10. Actions (Share Approval & Share Quotation)
             _buildActionButtons(theme, res),
 
-            const SizedBox(height: 20),
+            SizedBox(height: max(36.0, MediaQuery.of(context).padding.bottom + 28.0)),
           ],
         ),
       ),
@@ -663,7 +663,7 @@ class _MortgageTabState extends State<MortgageTab> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -689,47 +689,55 @@ class _MortgageTabState extends State<MortgageTab> {
             ),
 
             if (_includeInsurance) ...[
-              const Divider(height: 16),
+              const Divider(height: 18),
 
-              // Insurance Type (CLTT / MRTT / MRTA)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Takaful Type:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'CLTT', label: Text('CLTT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      ButtonSegment(value: 'MRTT', label: Text('MRTT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      ButtonSegment(value: 'MRTA', label: Text('MRTA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    ],
-                    selected: {_insuranceType},
-                    onSelectionChanged: (set) => setState(() => _insuranceType = set.first),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Auto vs Exact Quote Toggle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _isCustomMrtt ? 'Exact Bank Quote:' : 'Estimate Mode:',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                  SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(value: true, label: Text('Exact RM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      ButtonSegment(value: false, label: Text('Auto Calc', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                    ],
-                    selected: {_isCustomMrtt},
-                    onSelectionChanged: (set) => setState(() => _isCustomMrtt = set.first),
-                  ),
-                ],
+              // 1. Full-Width Takaful Type Segmented Button
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(
+                      value: 'CLTT',
+                      label: Text('CLTT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    ButtonSegment(
+                      value: 'MRTT',
+                      label: Text('MRTT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    ButtonSegment(
+                      value: 'MRTA',
+                      label: Text('MRTA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                  selected: {_insuranceType},
+                  onSelectionChanged: (set) => setState(() => _insuranceType = set.first),
+                ),
               ),
 
               const SizedBox(height: 10),
+
+              // 2. Full-Width Calculation Mode Toggle
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Exact Bank Quote (RM)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    ButtonSegment(
+                      value: false,
+                      label: Text('Auto-Estimate (Age)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                  selected: {_isCustomMrtt},
+                  onSelectionChanged: (set) => setState(() => _isCustomMrtt = set.first),
+                ),
+              ),
+
+              const SizedBox(height: 12),
 
               if (_isCustomMrtt) ...[
                 TextField(
@@ -740,18 +748,20 @@ class _MortgageTabState extends State<MortgageTab> {
                     labelText: '$_insuranceType Contribution (RM)',
                     prefixText: 'RM ',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _coverageRemarkController,
                   decoration: InputDecoration(
                     labelText: AppStrings.tr('coverageRemark', widget.lang),
                     hintText: 'e.g. Cover 50% seorang up to 35 years',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
               ] else ...[
                 _ageSelector(theme),
@@ -759,70 +769,77 @@ class _MortgageTabState extends State<MortgageTab> {
 
               const SizedBox(height: 12),
 
-              // Financed into Loan Switch
+              // 3. Clean Financed Switch Tile
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Finance $_insuranceType into Loan',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            _financeMrtt ? 'Adds to Total Loan (Zero cash at SPA)' : 'Pay cash at SPA signing',
-                            style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: _financeMrtt,
-                      onChanged: (v) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _financeMrtt = v);
-                      },
-                    ),
-                  ],
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  title: Text(
+                    'Finance $_insuranceType into Loan',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    _financeMrtt
+                        ? 'Included in loan installment (RM0 upfront cash at SPA)'
+                        : 'Paid as cash at SPA signing',
+                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  value: _financeMrtt,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _financeMrtt = v);
+                  },
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-              // Optional LTHT Fire Takaful
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('LTHT Fire Takaful (Optional):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  Row(
-                    children: [
-                      const Text('Finance', style: TextStyle(fontSize: 11)),
-                      Switch(
-                        value: _financeLtht,
-                        onChanged: (v) => setState(() => _financeLtht = v),
-                      ),
-                    ],
+              // 4. Clean Expandable LTHT Fire Takaful (Lump-Sum)
+              Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                  childrenPadding: const EdgeInsets.symmetric(vertical: 6),
+                  leading: Icon(Icons.local_fire_department_outlined, size: 20, color: theme.colorScheme.primary),
+                  title: const Text(
+                    'LTHT Fire Takaful (Optional)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
-                ],
-              ),
-              TextField(
-                controller: _customLthtController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [ThousandsSeparatorInputFormatter()],
-                decoration: InputDecoration(
-                  labelText: 'LTHT Fire Takaful Amount (RM)',
-                  hintText: 'e.g. 7,014.73',
-                  prefixText: 'RM ',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  subtitle: Text(
+                    _customLthtController.text.isNotEmpty && _customLthtController.text != '0'
+                        ? 'RM ${_customLthtController.text} (${_financeLtht ? 'Financed' : 'Cash'})'
+                        : 'Add lump-sum fire takaful (e.g. Bank Islam)',
+                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  children: [
+                    TextField(
+                      controller: _customLthtController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [ThousandsSeparatorInputFormatter()],
+                      decoration: InputDecoration(
+                        labelText: 'LTHT Fire Takaful Amount (RM)',
+                        hintText: 'e.g. 7,015',
+                        prefixText: 'RM ',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 6),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Finance LTHT into Loan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Adds into Total Loan amount', style: TextStyle(fontSize: 11)),
+                      value: _financeLtht,
+                      onChanged: (v) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _financeLtht = v);
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1244,29 +1261,33 @@ class _MortgageTabState extends State<MortgageTab> {
 
   Widget _buildActionButtons(ThemeData theme, MortgageResult res) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Primary Action: WhatsApp Share Choice
         FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF25D366),
+            backgroundColor: const Color(0xFF128C7E),
             foregroundColor: Colors.white,
+            elevation: 2,
+            shadowColor: const Color(0xFF128C7E).withValues(alpha: 0.35),
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           onPressed: () => _showShareChoiceModal(context, res),
-          icon: const Icon(Icons.send_rounded),
+          icon: const Icon(Icons.send_rounded, size: 20),
           label: Text(
             AppStrings.tr('shareWhatsApp', widget.lang),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
         // Secondary Action: Copy Quotation
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.8), width: 1.2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           onPressed: () {
             final text = ShareService.formatLoanApprovalWhatsApp(
@@ -1285,7 +1306,10 @@ class _MortgageTabState extends State<MortgageTab> {
             );
           },
           icon: const Icon(Icons.copy_rounded, size: 18),
-          label: Text(AppStrings.tr('copyQuotation', widget.lang)),
+          label: Text(
+            AppStrings.tr('copyQuotation', widget.lang),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );

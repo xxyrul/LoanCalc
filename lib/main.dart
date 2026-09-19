@@ -7,10 +7,10 @@ import 'i18n/app_strings.dart';
 import 'screens/mortgage_tab.dart';
 import 'screens/dsr_tab.dart';
 import 'screens/lppsa_tab.dart';
+import 'screens/settings_screen.dart';
 import 'screens/updater_screen.dart';
 import 'services/notification_service.dart';
 import 'services/update_service.dart';
-import 'widgets/agent_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +42,11 @@ class _LoanCalcAppState extends State<LoanCalcApp> {
     final savedTheme = prefs.getString('app_theme');
 
     setState(() {
-      if (savedLang != null) _lang = savedLang;
+      if (savedLang == 'en' || savedLang == 'bm') {
+        _lang = savedLang!;
+      } else {
+        _lang = 'bm';
+      }
       if (savedAgent != null) {
         try {
           _agentProfile = AgentProfile.fromJson(jsonDecode(savedAgent));
@@ -160,17 +164,6 @@ class _MainHomeScreenState extends State<MainHomeScreen>
     super.dispose();
   }
 
-  void _openAgentDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AgentDialog(
-        lang: widget.lang,
-        currentProfile: widget.agentProfile,
-        onSaved: widget.onAgentSaved,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -179,7 +172,7 @@ class _MainHomeScreenState extends State<MainHomeScreen>
     final overlayStyle = SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: theme.colorScheme.surface,
+      systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       systemNavigationBarDividerColor: Colors.transparent,
     );
@@ -237,59 +230,32 @@ class _MainHomeScreenState extends State<MainHomeScreen>
               ],
             ),
             actions: [
-              // Language Switcher Menu
-              PopupMenuButton<String>(
-                tooltip: 'Change Language',
-                icon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.language, size: 18, color: theme.colorScheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.lang == 'zh' ? 'CN' : widget.lang.toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
-                ),
-                onSelected: widget.onLanguageChanged,
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(value: 'bm', child: Text('🇲🇾 Bahasa Melayu (BM)')),
-                  const PopupMenuItem(value: 'en', child: Text('🇬🇧 English (EN)')),
-                  const PopupMenuItem(value: 'zh', child: Text('🇨🇳 中文 (CN)')),
-                ],
-              ),
-
-              // Agent Profile Button
+              // Consolidated Settings Button
               IconButton(
-                tooltip: AppStrings.tr('agentSettings', widget.lang),
-                icon: const Icon(Icons.badge_outlined),
-                onPressed: _openAgentDialog,
-              ),
-
-              // In-App Updater Page Button
-              IconButton(
-                tooltip: AppStrings.tr('appUpdater', widget.lang),
+                tooltip: AppStrings.tr('settings', widget.lang),
                 icon: Badge(
                   isLabelVisible: _availableUpdate != null,
                   backgroundColor: theme.colorScheme.primary,
                   smallSize: 8,
-                  child: const Icon(Icons.system_update_alt_rounded),
+                  child: const Icon(Icons.settings_outlined),
                 ),
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (ctx) => UpdaterScreen(lang: widget.lang),
+                      builder: (ctx) => SettingsScreen(
+                        lang: widget.lang,
+                        isDarkMode: widget.isDarkMode,
+                        agentProfile: widget.agentProfile,
+                        onLanguageChanged: widget.onLanguageChanged,
+                        onThemeToggled: widget.onThemeToggled,
+                        onAgentSaved: widget.onAgentSaved,
+                        availableUpdate: _availableUpdate,
+                      ),
                     ),
                   );
                 },
               ),
-
-              // Theme Toggle Button
-              IconButton(
-                tooltip: 'Toggle Dark/Light Mode',
-                icon: Icon(widget.isDarkMode ? Icons.light_mode : Icons.dark_mode_outlined),
-                onPressed: widget.onThemeToggled,
-              ),
+              const SizedBox(width: 4),
             ],
             bottom: TabBar(
               onTap: (_) => FocusManager.instance.primaryFocus?.unfocus(),
