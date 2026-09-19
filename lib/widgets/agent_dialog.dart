@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/calculator_models.dart';
 import '../i18n/app_strings.dart';
-import '../screens/updater_screen.dart';
 
 class AgentDialog extends StatefulWidget {
   final String lang;
@@ -118,39 +117,7 @@ class _AgentDialogState extends State<AgentDialog> {
                 hintText: 'REN 12345',
               ),
             ),
-            const SizedBox(height: 8),
-            const Divider(),
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (ctx) => UpdaterScreen(lang: widget.lang),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.system_update_alt_rounded, size: 20, color: theme.colorScheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        AppStrings.tr('appUpdater', widget.lang),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                  ],
-                ),
-              ),
-            ),
+
           ],
         ),
       ),

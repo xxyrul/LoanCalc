@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../i18n/app_strings.dart';
-import '../services/notification_service.dart';
 import '../services/update_service.dart';
 
 enum UpdaterStatus {
@@ -75,11 +74,6 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
           _status = UpdaterStatus.updateAvailable;
           _updateInfo = info;
         });
-        NotificationService.showUpdateNotification(
-          title: '${AppStrings.tr('updateNotificationTitle', widget.lang)} (${info.versionTag})',
-          body: AppStrings.tr('updateNotificationBody', widget.lang),
-          route: 'updater',
-        );
       } else {
         setState(() {
           _status = UpdaterStatus.upToDate;

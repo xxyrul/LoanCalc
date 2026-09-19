@@ -29,11 +29,11 @@ class _MortgageTabState extends State<MortgageTab> {
   PropertyCategory _category = PropertyCategory.newLaunch;
 
   // Property Inputs
-  final _priceController = TextEditingController(text: '274,360');
-  double _price = 274360;
-  double _downPaymentPercent = 0; // Default 100% Loan from Maybank SJKP case
+  final _priceController = TextEditingController(text: '500,000');
+  double _price = 500000;
+  double _downPaymentPercent = 10;
   int _tenureYears = 35;
-  double _interestRate = 4.55;
+  double _interestRate = 4.00;
   bool _isFirstHome = true;
 
   // New Launch Developer Package Controls
@@ -47,26 +47,18 @@ class _MortgageTabState extends State<MortgageTab> {
   // Subsale Controls
   bool _financeValuation = false;
 
-  // Insurance & Takaful Controls (CLTT / MRTT / LTHT)
-  bool _includeInsurance = true;
+  // Insurance & Takaful Controls (MRTT / MLTT / LTHT)
+  bool _includeInsurance = false;
   bool _financeMrtt = true;
-  bool _isCustomMrtt = true;
-  final _customMrttController = TextEditingController(text: '21,983');
-  final _coverageRemarkController = TextEditingController(text: 'Cover 50% seorang up to 35 years');
-  String _insuranceType = 'CLTT';
+  bool _isCustomMrtt = false;
+  final _customMrttController = TextEditingController();
+  final _coverageRemarkController = TextEditingController();
+  String _insuranceType = 'MRTT';
   int _borrowerAge = 30;
 
   // LTHT Fire Insurance
   bool _financeLtht = false;
   final _customLthtController = TextEditingController();
-
-  // Facility & Product Attributes
-  final _applicantNameController = TextEditingController(text: 'Ahmad Faisal & Nor Azilah');
-  final _rateRemarkController = TextEditingController(text: 'subject to HQ approval');
-  String _facilityName = 'SJKP';
-  String _loanType = 'Islamic Loan';
-  String _flexiType = 'Semi Flexi Loan';
-  String _lockInPeriod = 'No lock-in period';
 
   // Investment & Rental Metrics ("Other")
   final _areaSqftController = TextEditingController();
@@ -85,8 +77,6 @@ class _MortgageTabState extends State<MortgageTab> {
     _customMrttController.dispose();
     _coverageRemarkController.dispose();
     _customLthtController.dispose();
-    _applicantNameController.dispose();
-    _rateRemarkController.dispose();
     _areaSqftController.dispose();
     _rentalController.dispose();
     _utilitiesController.dispose();
@@ -142,12 +132,6 @@ class _MortgageTabState extends State<MortgageTab> {
       financeLtht: _financeLtht,
       insuranceType: _insuranceType,
       insuranceCoverageRemark: _coverageRemarkController.text.trim(),
-      facilityName: _facilityName,
-      loanType: _loanType,
-      flexiType: _flexiType,
-      lockInPeriod: _lockInPeriod,
-      rateRemark: _rateRemarkController.text.trim(),
-      applicantNames: _applicantNameController.text.trim(),
       areaSqft: areaSqft,
       monthlyRental: monthlyRental,
       monthlyUtilities: monthlyUtilities,
@@ -203,10 +187,7 @@ class _MortgageTabState extends State<MortgageTab> {
             // 7. Property & Investment Metrics ("Other" section)
             _buildInvestmentMetricsCard(theme, res),
 
-            const SizedBox(height: 12),
 
-            // 8. Loan Facility & Approval Details (Expandable)
-            _buildApprovalDetailsCard(theme),
 
             const SizedBox(height: 16),
 
@@ -939,126 +920,7 @@ class _MortgageTabState extends State<MortgageTab> {
     );
   }
 
-  Widget _buildApprovalDetailsCard(ThemeData theme) {
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        leading: Icon(Icons.verified_outlined, color: theme.colorScheme.primary),
-        title: Text(
-          AppStrings.tr('loanFacility', widget.lang),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _applicantNameController,
-                  decoration: InputDecoration(
-                    labelText: AppStrings.tr('applicantNames', widget.lang),
-                    hintText: 'e.g. Ahmad Faisal & Nor Azilah',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _facilityName,
-                        decoration: InputDecoration(
-                          labelText: 'Facility',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'SJKP', child: Text('SJKP Scheme')),
-                          DropdownMenuItem(value: 'Standard Housing Loan', child: Text('Standard Loan')),
-                          DropdownMenuItem(value: 'First Home Scheme', child: Text('First Home')),
-                        ],
-                        onChanged: (v) => setState(() => _facilityName = v ?? 'SJKP'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _loanType,
-                        decoration: InputDecoration(
-                          labelText: 'Type',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'Islamic Loan', child: Text('Islamic Loan')),
-                          DropdownMenuItem(value: 'Conventional Loan', child: Text('Conventional')),
-                        ],
-                        onChanged: (v) => setState(() => _loanType = v ?? 'Islamic Loan'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _flexiType,
-                        decoration: InputDecoration(
-                          labelText: 'Flexibility',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'Semi Flexi Loan', child: Text('Semi Flexi')),
-                          DropdownMenuItem(value: 'Full Flexi Loan', child: Text('Full Flexi')),
-                          DropdownMenuItem(value: 'Term Loan', child: Text('Term Loan')),
-                        ],
-                        onChanged: (v) => setState(() => _flexiType = v ?? 'Semi Flexi Loan'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _lockInPeriod,
-                        decoration: InputDecoration(
-                          labelText: 'Lock-in',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'No lock-in period', child: Text('No Lock-in')),
-                          DropdownMenuItem(value: '3 Years Lock-in', child: Text('3 Years')),
-                          DropdownMenuItem(value: '5 Years Lock-in', child: Text('5 Years')),
-                        ],
-                        onChanged: (v) => setState(() => _lockInPeriod = v ?? 'No lock-in period'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _rateRemarkController,
-                  decoration: InputDecoration(
-                    labelText: AppStrings.tr('rateRemark', widget.lang),
-                    hintText: 'e.g. subject to HQ approval',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildResultsCard(ThemeData theme, MortgageResult res) {
     return Card(
@@ -1081,21 +943,6 @@ class _MortgageTabState extends State<MortgageTab> {
                     color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.85),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Selepas Muqasah',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -1112,7 +959,7 @@ class _MortgageTabState extends State<MortgageTab> {
                   ),
                 ),
                 Text(
-                  ' / mo',
+                  ' / ${AppStrings.tr('perMonth', widget.lang)}',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1124,26 +971,35 @@ class _MortgageTabState extends State<MortgageTab> {
 
             const Divider(height: 24),
 
-            // FORMULA SUMMARY BREAKDOWN (Matching Real Bank Letter of Offer)
+            // FORMULA SUMMARY BREAKDOWN
             _breakdownRow(
-              'SPA Property Price',
+              widget.lang == 'bm' ? 'Harga Hartanah (SPA)' : 'SPA Property Price',
               _fmt(res.propertyPrice),
             ),
+            if (res.developerDiscountAmount > 0)
+              _breakdownRow(
+                widget.lang == 'bm'
+                    ? 'Rebat Pemaju (${res.developerDiscountPercent.toInt()}%)'
+                    : 'Developer Rebate (${res.developerDiscountPercent.toInt()}%)',
+                '-${_fmt(res.developerDiscountAmount)}',
+              ),
             _breakdownRow(
-              res.downPaymentPercent == 0 ? '100% Loan Margin' : '${(100 - res.downPaymentPercent).toInt()}% Loan Margin',
+              widget.lang == 'bm'
+                  ? 'Margin Pinjaman ${res.downPaymentPercent == 0 ? "100%" : "${(100 - res.downPaymentPercent).toInt()}%"}'
+                  : '${res.downPaymentPercent == 0 ? "100%" : "${(100 - res.downPaymentPercent).toInt()}%"} Loan Margin',
               _fmt(res.loanAmount),
             ),
             if (res.clttMrttAmount > 0 && res.clttMrttFinanced)
               _breakdownRow(
                 '${res.insuranceType} Contribution',
                 '+${_fmt(res.clttMrttAmount)}',
-                'Financed',
+                widget.lang == 'bm' ? 'Dimasukkan' : 'Financed',
               ),
             if (res.lthtFireAmount > 0 && res.lthtFireFinanced)
               _breakdownRow(
-                'LTHT Fire Takaful',
+                widget.lang == 'bm' ? 'LTHT Kebakaran' : 'LTHT Fire Takaful',
                 '+${_fmt(res.lthtFireAmount)}',
-                'Financed',
+                widget.lang == 'bm' ? 'Dimasukkan' : 'Financed',
               ),
 
             Container(
@@ -1157,7 +1013,7 @@ class _MortgageTabState extends State<MortgageTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Total Loan (Jumlah Pembiayaan)',
+                    AppStrings.tr('totalFinancedLoan', widget.lang),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -1177,8 +1033,8 @@ class _MortgageTabState extends State<MortgageTab> {
             ),
 
             _breakdownRow(
-              'Rate & Tenure',
-              '${_interestRate.toStringAsFixed(2)}% | $_tenureYears yrs',
+              widget.lang == 'bm' ? 'Kadar & Tempoh' : 'Rate & Tenure',
+              '${_interestRate.toStringAsFixed(2)}% | $_tenureYears ${widget.lang == 'bm' ? 'thn' : 'yrs'}',
             ),
 
             const Divider(height: 20),
@@ -1207,24 +1063,47 @@ class _MortgageTabState extends State<MortgageTab> {
             ),
             const SizedBox(height: 6),
             _breakdownRow(
-              'Cash Downpayment',
+              widget.lang == 'bm' ? 'Deposit Tunai Bersih' : 'Cash Downpayment',
               _fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount)),
             ),
             _breakdownRow(
-              'SPA Legal Fee',
-              res.freeSpaLegal ? 'RM -' : _fmt(res.legalFees),
-              res.freeSpaLegal ? 'Free' : null,
+              widget.lang == 'bm' ? 'Yuran Guaman SPA' : 'SPA Legal Fee',
+              res.freeSpaLegal ? 'RM 0' : _fmt(res.legalFees),
+              res.freeSpaLegal ? (widget.lang == 'bm' ? 'Percuma' : 'Free') : null,
             ),
             _breakdownRow(
-              'SPA Stamp Duty (MOT)',
-              res.freeSpaMot ? 'RM -' : _fmt(res.stampDuty),
-              res.freeSpaMot ? 'Free' : null,
+              widget.lang == 'bm' ? 'Duti Setem MOT' : 'SPA Stamp Duty (MOT)',
+              res.freeSpaMot ? 'RM 0' : _fmt(res.stampDuty),
+              res.freeSpaMot ? (widget.lang == 'bm' ? 'Percuma' : 'Free') : null,
             ),
             _breakdownRow(
-              'Valuation Fee',
-              res.financeValuation ? 'RM -' : _fmt(res.valuationFee),
-              res.financeValuation ? 'Financed' : null,
+              widget.lang == 'bm' ? 'Guaman & Duti Pinjaman' : 'Loan Legal & Stamp Duty',
+              (res.freeLoanLegal || res.financeLoanDoc)
+                  ? 'RM 0'
+                  : _fmt(res.loanLegalFees + res.loanStampDuty),
+              res.financeLoanDoc
+                  ? (widget.lang == 'bm' ? 'Dimasukkan' : 'Financed')
+                  : (res.freeLoanLegal ? (widget.lang == 'bm' ? 'Percuma' : 'Free') : null),
             ),
+            _breakdownRow(
+              widget.lang == 'bm' ? 'Yuran Penilaian' : 'Valuation Fee',
+              (res.financeValuation || res.category == PropertyCategory.newLaunch)
+                  ? 'RM 0'
+                  : _fmt(res.valuationFee),
+              res.financeValuation
+                  ? (widget.lang == 'bm' ? 'Dimasukkan' : 'Financed')
+                  : (res.category == PropertyCategory.newLaunch ? (widget.lang == 'bm' ? 'Percuma' : 'Free') : null),
+            ),
+            if (res.clttMrttAmount > 0 && !res.clttMrttFinanced)
+              _breakdownRow(
+                '${res.insuranceType} Contribution',
+                _fmt(res.clttMrttAmount),
+              ),
+            if (res.lthtFireAmount > 0 && !res.lthtFireFinanced)
+              _breakdownRow(
+                widget.lang == 'bm' ? 'LTHT Kebakaran' : 'LTHT Fire Takaful',
+                _fmt(res.lthtFireAmount),
+              ),
 
             Divider(
               height: 20,
@@ -1263,7 +1142,7 @@ class _MortgageTabState extends State<MortgageTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Primary Action: WhatsApp Share Choice
+        // Primary Action: WhatsApp Quotation (Direct 1-Tap)
         FilledButton.icon(
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF128C7E),
@@ -1273,7 +1152,14 @@ class _MortgageTabState extends State<MortgageTab> {
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          onPressed: () => _showShareChoiceModal(context, res),
+          onPressed: () {
+            final text = ShareService.formatMortgageWhatsApp(
+              res: res,
+              lang: widget.lang,
+              agent: widget.agentProfile,
+            );
+            ShareService.launchWhatsApp(text);
+          },
           icon: const Icon(Icons.send_rounded, size: 20),
           label: Text(
             AppStrings.tr('shareWhatsApp', widget.lang),
@@ -1282,7 +1168,7 @@ class _MortgageTabState extends State<MortgageTab> {
         ),
         const SizedBox(height: 10),
 
-        // Secondary Action: Copy Quotation
+        // Secondary Action: Copy Quotation (Direct 1-Tap)
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1290,10 +1176,8 @@ class _MortgageTabState extends State<MortgageTab> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           onPressed: () {
-            final text = ShareService.formatLoanApprovalWhatsApp(
+            final text = ShareService.formatMortgageWhatsApp(
               res: res,
-              interestRate: _interestRate,
-              tenureYears: _tenureYears,
               lang: widget.lang,
               agent: widget.agentProfile,
             );
@@ -1312,72 +1196,6 @@ class _MortgageTabState extends State<MortgageTab> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showShareChoiceModal(BuildContext context, MortgageResult res) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Pilih Format WhatsApp / Share Options',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFDCFCE7),
-                    child: Icon(Icons.celebration_rounded, color: Color(0xFF14532D)),
-                  ),
-                  title: const Text('Surat Kelulusan Pinjaman (Approval Letter)', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Format ucapan tahniah rasmi dengan formula Total Loan & ansuran bulanan.'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final text = ShareService.formatLoanApprovalWhatsApp(
-                      res: res,
-                      interestRate: _interestRate,
-                      tenureYears: _tenureYears,
-                      lang: widget.lang,
-                      agent: widget.agentProfile,
-                    );
-                    ShareService.launchWhatsApp(text);
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFEFF6FF),
-                    child: Icon(Icons.receipt_long_rounded, color: Color(0xFF1D4ED8)),
-                  ),
-                  title: const Text('Sebutharga Lengkap (Full Quotation)', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Pecahan terperinci kos permulaan, rebat pemaju, dan metrik pelaburan.'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    final text = ShareService.formatMortgageWhatsApp(
-                      res: res,
-                      lang: widget.lang,
-                      agent: widget.agentProfile,
-                    );
-                    ShareService.launchWhatsApp(text);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 

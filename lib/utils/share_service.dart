@@ -24,99 +24,7 @@ class ShareService {
         '${cleanPhone.isNotEmpty ? '📞 WhatsApp: wa.me/$cleanPhone' : ''}';
   }
 
-  /// Generates the standard Malaysian Real Estate / Banker Loan Approval Announcement
-  static String formatLoanApprovalWhatsApp({
-    required MortgageResult res,
-    required double interestRate,
-    required int tenureYears,
-    required String lang,
-    AgentProfile? agent,
-  }) {
-    final sig = _buildAgentSignature(agent);
-    final applicantText = res.applicantNames != null && res.applicantNames!.trim().isNotEmpty
-        ? '*${res.applicantNames!.trim()}*'
-        : (lang == 'zh' ? '*买家尊客*' : lang == 'en' ? '*Valued Buyer*' : '*Pembeli Hartanah*');
 
-    final coverageText = res.insuranceCoverageRemark.isNotEmpty
-        ? ' (${res.insuranceCoverageRemark})'
-        : '';
-
-    final legalFeeText = (res.freeSpaLegal || res.legalFees <= 0)
-        ? 'RM - (Free)'
-        : _fmt(res.legalFees);
-
-    final valuationFeeText = (res.freeLoanLegal || res.financeValuation || res.valuationFee <= 0)
-        ? (res.financeValuation ? 'RM - (Financed)' : 'RM - (Free)')
-        : _fmt(res.valuationFee);
-
-    final rateRemarkText = res.rateRemark.isNotEmpty ? ' (${res.rateRemark})' : '';
-
-    final loanMarginLabel = res.downPaymentPercent == 0
-        ? '100% Loan'
-        : '${(100 - res.downPaymentPercent).toInt()}% Loan';
-
-    if (lang == 'zh') {
-      return '🎉 *祝贺商业房贷/伊斯兰房屋贷款顺利获批！*\n'
-          '恭喜 $applicantText\n\n'
-          '🏠 *SPA 购买总价:* ${_fmt(res.propertyPrice)}\n'
-          '🏦 *$loanMarginLabel:* ${_fmt(res.loanAmount)}\n'
-          '${res.clttMrttAmount > 0 ? '🛡️ *${res.insuranceType}:* ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
-          '${res.lthtFireAmount > 0 ? '🔥 *LTHT 火险:* ${_fmt(res.lthtFireAmount)} (已计入贷款)\n' : ''}'
-          '⚖️ *律师费:* $legalFeeText\n'
-          '📑 *估价费:* $valuationFeeText\n'
-          '━━━━━━━━━━━━━━━━━\n'
-          '💰 *房贷批额总数 (Total Loan):* *${_fmt(res.totalFinancedLoan)}*\n'
-          '⏳ *还款年限:* $tenureYears 年\n'
-          '📈 *贷款年利率:* ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
-          '💳 *每月供款额:* *${_fmt(res.monthlyInstallmentWithInsurance)}/月*\n\n'
-          '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Standard Loan'}\n'
-          '• ${res.loanType}\n'
-          '• ${res.lockInPeriod}\n'
-          '• ${res.flexiType}'
-          '$sig';
-    }
-
-    if (lang == 'en') {
-      return '🎉 *Congratulations housing loan approved*\n'
-          '$applicantText\n\n'
-          'SPA: ${_fmt(res.propertyPrice)}\n'
-          '$loanMarginLabel: ${_fmt(res.loanAmount)}\n'
-          '${res.clttMrttAmount > 0 ? '${res.insuranceType}: ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
-          '${res.lthtFireAmount > 0 ? 'LTHT Fire: ${_fmt(res.lthtFireAmount)} (Financed)\n' : ''}'
-          'Legal Fee: $legalFeeText\n'
-          'Valuation Fee: $valuationFeeText\n'
-          '━━━━━━━━━━━━━━━━━\n'
-          '*Total Loan:* *${_fmt(res.totalFinancedLoan)}*\n'
-          'Tenure: $tenureYears years\n'
-          'Rate: ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
-          'Monthly Instalment: *${_fmt(res.monthlyInstallmentWithInsurance)}*\n\n'
-          '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Housing Loan'}\n'
-          '• ${res.loanType}\n'
-          '• ${res.lockInPeriod}\n'
-          '• ${res.flexiType}'
-          '$sig';
-    }
-
-    // Default: BM
-    return '🎉 *Tahniah pembiayaan perumahan telah diluluskan!*\n'
-        '$applicantText\n\n'
-        'SPA: ${_fmt(res.propertyPrice)}\n'
-        '$loanMarginLabel: ${_fmt(res.loanAmount)}\n'
-        '${res.clttMrttAmount > 0 ? '${res.insuranceType}: ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
-        '${res.lthtFireAmount > 0 ? 'LTHT Kebakaran: ${_fmt(res.lthtFireAmount)} (Dimasukkan Pinjaman)\n' : ''}'
-        'Yuran Guaman: $legalFeeText\n'
-        'Yuran Penilaian: $valuationFeeText\n'
-        '━━━━━━━━━━━━━━━━━\n'
-        '*Jumlah Pembiayaan (Total Loan):* *${_fmt(res.totalFinancedLoan)}*\n'
-        'Tempoh Bayaran: $tenureYears tahun\n'
-        'Kadar Keuntungan/Faedah: ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
-        'Ansuran Bulanan: *${_fmt(res.monthlyInstallmentWithInsurance)}/bulan*\n\n'
-        '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Pembiayaan Perumahan'}\n'
-        '• ${res.loanType}\n'
-        '• ${res.lockInPeriod}\n'
-        '• ${res.flexiType}'
-        '$sig';
-  }
 
   static String formatMortgageWhatsApp({
     required MortgageResult res,
@@ -137,7 +45,7 @@ class ShareService {
           '🏦 *房贷额 (Base):* ${_fmt(res.loanAmount)}\n'
           '${res.totalFinancedLoan > res.loanAmount ? '💳 *房贷总额 (含保险/杂费):* *${_fmt(res.totalFinancedLoan)}*\n' : ''}'
           '---------------------------------\n'
-          '📊 *每月供款估算 (Selepas Muqasah)*\n'
+          '📊 *每月供款估算*\n'
           '• *每月供款额:* *${_fmt(res.monthlyInstallmentWithInsurance)}/月*\n'
           '• 建议家庭最低净月入: ${_fmt(res.recommendedIncome)}\n'
           '${res.pricePsf != null ? '• 尺价 (PSF): RM ${res.pricePsf!.toStringAsFixed(1)}/sqft\n' : ''}'
@@ -187,7 +95,7 @@ class ShareService {
         '🏦 *Pinjaman Asas:* ${_fmt(res.loanAmount)}\n'
         '${res.totalFinancedLoan > res.loanAmount ? '💳 *Jumlah Pinjaman Dibiayai:* *${_fmt(res.totalFinancedLoan)}*\n' : ''}'
         '---------------------------------\n'
-        '📊 *ANGGARAN BULANAN (SELEPAS MUQASAH)*\n'
+        '📊 *ANGGARAN BULANAN*\n'
         '• *Ansuran Bulanan:* *${_fmt(res.monthlyInstallmentWithInsurance)}/bulan*\n'
         '• Cadangan Gaji Bersih Minimum: ${_fmt(res.recommendedIncome)}\n'
         '${res.pricePsf != null ? '• Harga Sekaki (PSF): RM ${res.pricePsf!.toStringAsFixed(1)}/sqft\n' : ''}'
