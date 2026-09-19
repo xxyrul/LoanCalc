@@ -1,6 +1,7 @@
 package com.loancalc.loan_calc
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -16,6 +17,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import io.flutter.embedding.android.FlutterActivity
@@ -33,6 +35,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         createNotificationChannel()
+        scheduleAutoUpdateWorker()
 
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         methodChannel?.setMethodCallHandler { call, result ->
@@ -72,36 +75,13 @@ class MainActivity : FlutterActivity() {
                     showUpdateNotification(title, body, route)
                     result.success(true)
                 }
-                "sendTestNotification" -> {
-                    val title = call.argument<String>("title") ?: "🔔 Notifikasi Ujian LoanCalc"
-                    val body = call.argument<String>("body") ?: "Notifikasi kemas kini sedia berfungsi dengan baik!"
-                    showUpdateNotification(title, body, "updater")
-                    result.success(true)
-                }
                 "requestNotificationPermission" -> {
                     requestNotificationPermission()
                     result.success(true)
                 }
                 "scheduleBackgroundWorker" -> {
-                    try {
-                        val intervalHours = (call.argument<Int>("intervalHours") ?: 4).coerceAtLeast(1)
-                        val constraints = Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                        val workRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
-                            intervalHours.toLong(),
-                            TimeUnit.HOURS
-                        ).setConstraints(constraints).build()
-
-                        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-                            "loancalc_update_check",
-                            ExistingPeriodicWorkPolicy.UPDATE,
-                            workRequest
-                        )
-                        result.success(true)
-                    } catch (e: Exception) {
-                        result.error("WORKER_ERROR", e.message, null)
-                    }
+                    scheduleAutoUpdateWorker()
+                    result.success(true)
                 }
                 "cancelBackgroundWorker" -> {
                     try {
@@ -130,6 +110,34 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun scheduleAutoUpdateWorker() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            // 1. One-time immediate background check
+            val immediateRequest = OneTimeWorkRequestBuilder<UpdateCheckWorker>()
+                .setConstraints(constraints)
+                .build()
+            WorkManager.getInstance(applicationContext).enqueue(immediateRequest)
+
+            // 2. Periodic background check every 15 minutes (minimum allowed by Android)
+            val periodicRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
+                15,
+                TimeUnit.MINUTES
+            ).setConstraints(constraints).build()
+
+            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                "loancalc_update_check",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                periodicRequest
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "App Updates"
@@ -138,6 +146,9 @@ class MainActivity : FlutterActivity() {
             val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableVibration(true)
+                enableLights(true)
+                setShowBadge(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -173,7 +184,9 @@ class MainActivity : FlutterActivity() {
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 

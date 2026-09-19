@@ -36,7 +36,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
-  String _currentVersion = '1.0.5';
+  String _currentVersion = '1.0.6';
   bool _updateNotificationsEnabled = true;
   bool _notificationsAllowed = true;
   late AgentProfile? _agent;

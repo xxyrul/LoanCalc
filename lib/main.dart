@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -130,7 +131,7 @@ class _MainHomeScreenState extends State<MainHomeScreen>
   late TabController _tabController;
   UpdateReleaseInfo? _availableUpdate;
   bool _bannerDismissed = false;
-  DateTime? _lastUpdateCheckTime;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -138,26 +139,25 @@ class _MainHomeScreenState extends State<MainHomeScreen>
     WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 3, vsync: this);
     _initNotifications();
+
+    // Check every 30 seconds while app is active or in background
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _checkUpdateSilently();
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkUpdateOnResume();
+      _checkUpdateSilently();
     }
   }
 
-  Future<void> _checkUpdateOnResume() async {
+  Future<void> _checkUpdateSilently() async {
     final prefs = await SharedPreferences.getInstance();
     final notifEnabled = prefs.getBool('update_notifications_enabled') ?? true;
     if (!notifEnabled) return;
 
-    if (_lastUpdateCheckTime != null &&
-        DateTime.now().difference(_lastUpdateCheckTime!).inMinutes < 10) {
-      return;
-    }
-
-    _lastUpdateCheckTime = DateTime.now();
     final update = await NotificationService.checkForUpdateAndNotify(lang: widget.lang);
     if (update != null && mounted) {
       setState(() {
@@ -177,25 +177,14 @@ class _MainHomeScreenState extends State<MainHomeScreen>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final prefs = await SharedPreferences.getInstance();
-      final notifEnabled = prefs.getBool('update_notifications_enabled') ?? true;
-
-      if (notifEnabled) {
-        await NotificationService.scheduleBackgroundWorker();
-        _lastUpdateCheckTime = DateTime.now();
-        final update = await NotificationService.checkForUpdateAndNotify(lang: widget.lang);
-        if (update != null && mounted) {
-          setState(() {
-            _availableUpdate = update;
-          });
-        }
-      }
+      await _checkUpdateSilently();
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
