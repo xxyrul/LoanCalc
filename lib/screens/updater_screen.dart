@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../i18n/app_strings.dart';
+import '../services/notification_service.dart';
 import '../services/update_service.dart';
 
 enum UpdaterStatus {
@@ -73,6 +74,11 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
           _status = UpdaterStatus.updateAvailable;
           _updateInfo = info;
         });
+        NotificationService.showUpdateNotification(
+          title: '${AppStrings.tr('updateNotificationTitle', widget.lang)} (${info.versionTag})',
+          body: AppStrings.tr('updateNotificationBody', widget.lang),
+          route: 'updater',
+        );
       } else {
         setState(() {
           _status = UpdaterStatus.upToDate;
@@ -169,6 +175,28 @@ class _UpdaterScreenState extends State<UpdaterScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'Test Push Notification',
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () async {
+              await NotificationService.showUpdateNotification(
+                title: '${AppStrings.tr('updateNotificationTitle', widget.lang)} (v1.0.2)',
+                body: AppStrings.tr('updateNotificationBody', widget.lang),
+                route: 'updater',
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🔔 Push notification sent to system tray!'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

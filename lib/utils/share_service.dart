@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,75 +24,182 @@ class ShareService {
         '${cleanPhone.isNotEmpty ? '📞 WhatsApp: wa.me/$cleanPhone' : ''}';
   }
 
+  /// Generates the standard Malaysian Real Estate / Banker Loan Approval Announcement
+  static String formatLoanApprovalWhatsApp({
+    required MortgageResult res,
+    required double interestRate,
+    required int tenureYears,
+    required String lang,
+    AgentProfile? agent,
+  }) {
+    final sig = _buildAgentSignature(agent);
+    final applicantText = res.applicantNames != null && res.applicantNames!.trim().isNotEmpty
+        ? '*${res.applicantNames!.trim()}*'
+        : (lang == 'zh' ? '*买家尊客*' : lang == 'en' ? '*Valued Buyer*' : '*Pembeli Hartanah*');
+
+    final coverageText = res.insuranceCoverageRemark.isNotEmpty
+        ? ' (${res.insuranceCoverageRemark})'
+        : '';
+
+    final legalFeeText = (res.freeSpaLegal || res.legalFees <= 0)
+        ? 'RM - (Free)'
+        : _fmt(res.legalFees);
+
+    final valuationFeeText = (res.freeLoanLegal || res.financeValuation || res.valuationFee <= 0)
+        ? (res.financeValuation ? 'RM - (Financed)' : 'RM - (Free)')
+        : _fmt(res.valuationFee);
+
+    final rateRemarkText = res.rateRemark.isNotEmpty ? ' (${res.rateRemark})' : '';
+
+    final loanMarginLabel = res.downPaymentPercent == 0
+        ? '100% Loan'
+        : '${(100 - res.downPaymentPercent).toInt()}% Loan';
+
+    if (lang == 'zh') {
+      return '🎉 *祝贺商业房贷/伊斯兰房屋贷款顺利获批！*\n'
+          '恭喜 $applicantText\n\n'
+          '🏠 *SPA 购买总价:* ${_fmt(res.propertyPrice)}\n'
+          '🏦 *$loanMarginLabel:* ${_fmt(res.loanAmount)}\n'
+          '${res.clttMrttAmount > 0 ? '🛡️ *${res.insuranceType}:* ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
+          '${res.lthtFireAmount > 0 ? '🔥 *LTHT 火险:* ${_fmt(res.lthtFireAmount)} (已计入贷款)\n' : ''}'
+          '⚖️ *律师费:* $legalFeeText\n'
+          '📑 *估价费:* $valuationFeeText\n'
+          '━━━━━━━━━━━━━━━━━\n'
+          '💰 *房贷批额总数 (Total Loan):* *${_fmt(res.totalFinancedLoan)}*\n'
+          '⏳ *还款年限:* $tenureYears 年\n'
+          '📈 *贷款年利率:* ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
+          '💳 *每月供款额:* *${_fmt(res.monthlyInstallmentWithInsurance)}/月*\n\n'
+          '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Standard Loan'}\n'
+          '• ${res.loanType}\n'
+          '• ${res.lockInPeriod}\n'
+          '• ${res.flexiType}'
+          '$sig';
+    }
+
+    if (lang == 'en') {
+      return '🎉 *Congratulations housing loan approved*\n'
+          '$applicantText\n\n'
+          'SPA: ${_fmt(res.propertyPrice)}\n'
+          '$loanMarginLabel: ${_fmt(res.loanAmount)}\n'
+          '${res.clttMrttAmount > 0 ? '${res.insuranceType}: ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
+          '${res.lthtFireAmount > 0 ? 'LTHT Fire: ${_fmt(res.lthtFireAmount)} (Financed)\n' : ''}'
+          'Legal Fee: $legalFeeText\n'
+          'Valuation Fee: $valuationFeeText\n'
+          '━━━━━━━━━━━━━━━━━\n'
+          '*Total Loan:* *${_fmt(res.totalFinancedLoan)}*\n'
+          'Tenure: $tenureYears years\n'
+          'Rate: ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
+          'Monthly Instalment: *${_fmt(res.monthlyInstallmentWithInsurance)}*\n\n'
+          '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Housing Loan'}\n'
+          '• ${res.loanType}\n'
+          '• ${res.lockInPeriod}\n'
+          '• ${res.flexiType}'
+          '$sig';
+    }
+
+    // Default: BM
+    return '🎉 *Tahniah pembiayaan perumahan telah diluluskan!*\n'
+        '$applicantText\n\n'
+        'SPA: ${_fmt(res.propertyPrice)}\n'
+        '$loanMarginLabel: ${_fmt(res.loanAmount)}\n'
+        '${res.clttMrttAmount > 0 ? '${res.insuranceType}: ${_fmt(res.clttMrttAmount)}$coverageText\n' : ''}'
+        '${res.lthtFireAmount > 0 ? 'LTHT Kebakaran: ${_fmt(res.lthtFireAmount)} (Dimasukkan Pinjaman)\n' : ''}'
+        'Yuran Guaman: $legalFeeText\n'
+        'Yuran Penilaian: $valuationFeeText\n'
+        '━━━━━━━━━━━━━━━━━\n'
+        '*Jumlah Pembiayaan (Total Loan):* *${_fmt(res.totalFinancedLoan)}*\n'
+        'Tempoh Bayaran: $tenureYears tahun\n'
+        'Kadar Keuntungan/Faedah: ${interestRate.toStringAsFixed(2)}%$rateRemarkText\n'
+        'Ansuran Bulanan: *${_fmt(res.monthlyInstallmentWithInsurance)}/bulan*\n\n'
+        '• ${res.facilityName.isNotEmpty ? res.facilityName : 'Pembiayaan Perumahan'}\n'
+        '• ${res.loanType}\n'
+        '• ${res.lockInPeriod}\n'
+        '• ${res.flexiType}'
+        '$sig';
+  }
+
   static String formatMortgageWhatsApp({
     required MortgageResult res,
     required String lang,
     AgentProfile? agent,
   }) {
     final sig = _buildAgentSignature(agent);
+    final isNewLaunch = res.category == PropertyCategory.newLaunch;
+    final catHeader = isNewLaunch
+        ? (lang == 'zh' ? '【新楼盘/发展商项目报价】' : lang == 'en' ? '[PRE / NEW LAUNCH PACKAGE]' : '[PAKEJ PROJEK BARU / UNDERCON]')
+        : (lang == 'zh' ? '【二手房产/Subsale 买卖报价】' : lang == 'en' ? '[SUBSALE PROPERTY QUOTATION]' : '[SEBUTHARGA HARTANAH SUBSALE]');
 
     if (lang == 'zh') {
-      return '🏡 *【马来西亚房屋贷款与购房预算】*\n\n'
-          '💰 *房产价格:* ${_fmt(res.propertyPrice)}\n'
-          '💵 *首付款 (${res.downPaymentPercent.toInt()}%):* ${_fmt(res.downPaymentAmount)}\n'
-          '🏦 *房贷总额:* ${_fmt(res.loanAmount)}\n'
+      return '🏡 *$catHeader*\n\n'
+          '💰 *房产价格 (SPA):* ${_fmt(res.propertyPrice)}\n'
+          '${res.developerDiscountAmount > 0 ? '🎁 *发展商回扣 (${res.developerDiscountPercent.toInt()}%):* -${_fmt(res.developerDiscountAmount)}\n' : ''}'
+          '💵 *实际需付首付:* ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+          '🏦 *房贷额 (Base):* ${_fmt(res.loanAmount)}\n'
+          '${res.totalFinancedLoan > res.loanAmount ? '💳 *房贷总额 (含保险/杂费):* *${_fmt(res.totalFinancedLoan)}*\n' : ''}'
           '---------------------------------\n'
-          '📊 *每月还款估算*\n'
-          '• *每月供款额:* *${_fmt(res.monthlyInstallment)}/月*\n'
-          '${res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• 含 MRTT 贷款供款: *${_fmt(res.monthlyInstallmentWithInsurance)}/月*\n' : ''}'
+          '📊 *每月供款估算 (Selepas Muqasah)*\n'
+          '• *每月供款额:* *${_fmt(res.monthlyInstallmentWithInsurance)}/月*\n'
           '• 建议家庭最低净月入: ${_fmt(res.recommendedIncome)}\n'
+          '${res.pricePsf != null ? '• 尺价 (PSF): RM ${res.pricePsf!.toStringAsFixed(1)}/sqft\n' : ''}'
+          '${res.rentalYield != null ? '• 预估租金回报率: ${res.rentalYield!.toStringAsFixed(2)}%\n' : ''}'
           '---------------------------------\n'
-          '💼 *前期头期现金总开销 (Entry Cost)*\n'
-          '• 现金首付款: ${_fmt(res.downPaymentAmount)}\n'
-          '• 印花税 (SPA): ${_fmt(res.stampDuty)} ${res.stampDuty < res.originalStampDuty ? '*(首购已节省 ${_fmt(res.originalStampDuty - res.stampDuty)})*' : ''}\n'
-          '• 律师费估算: ${_fmt(res.legalFees)}\n'
-          '• 估价费估算: ${_fmt(res.valuationFee)}\n'
-          '${res.fireInsuranceAnnual > 0 ? '• 房屋火险 (第1年): ${_fmt(res.fireInsuranceAnnual)}\n' : ''}'
-          '${!res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• MRTT 寿险 (自付): ${_fmt(res.mrttEstimate)}\n' : ''}'
-          '👉 *头期现金总开销:* *${_fmt(res.totalUpfrontWithInsurance)}*'
+          '💼 *置产前期头期现金 (Entry Cost)*\n'
+          '• 现金头期: ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+          '• 买卖合约印花税 (MOT): ${res.freeSpaMot ? 'RM 0 *(发展商全免)*' : _fmt(res.stampDuty)}\n'
+          '• 买卖律师费: ${res.freeSpaLegal ? 'RM 0 *(发展商全免)*' : _fmt(res.legalFees)}\n'
+          '• 贷款律师费与印花税: ${res.freeLoanLegal || res.financeLoanDoc ? (res.financeLoanDoc ? 'RM 0 *(计入房贷)*' : 'RM 0 *(免除)*') : _fmt(res.loanLegalFees + res.loanStampDuty)}\n'
+          '• 估价费: ${res.financeValuation ? 'RM 0 *(计入房贷)*' : _fmt(res.valuationFee)}\n'
+          '${res.clttMrttAmount > 0 ? '• ${res.insuranceType} 寿险: ${res.clttMrttFinanced ? 'RM 0 *(已计入房贷)*' : _fmt(res.clttMrttAmount)}\n' : ''}'
+          '👉 *总计需准备现金:* *${_fmt(res.totalUpfrontWithInsurance)}*'
           '$sig';
     }
 
     if (lang == 'en') {
-      return '🏡 *[PROPERTY FINANCING & ENTRY COST ESTIMATION]*\n\n'
-          '💰 *Property Price:* ${_fmt(res.propertyPrice)}\n'
-          '💵 *Downpayment (${res.downPaymentPercent.toInt()}%):* ${_fmt(res.downPaymentAmount)}\n'
-          '🏦 *Loan Amount:* ${_fmt(res.loanAmount)}\n'
+      return '🏡 *$catHeader*\n\n'
+          '💰 *Property Price (SPA):* ${_fmt(res.propertyPrice)}\n'
+          '${res.developerDiscountAmount > 0 ? '🎁 *Developer Rebate (${res.developerDiscountPercent.toInt()}%):* -${_fmt(res.developerDiscountAmount)}\n' : ''}'
+          '💵 *Net Cash Downpayment:* ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+          '🏦 *Base Loan Amount:* ${_fmt(res.loanAmount)}\n'
+          '${res.totalFinancedLoan > res.loanAmount ? '💳 *Total Financed Loan:* *${_fmt(res.totalFinancedLoan)}*\n' : ''}'
           '---------------------------------\n'
           '📊 *MONTHLY ESTIMATION*\n'
-          '• *Monthly Installment:* *${_fmt(res.monthlyInstallment)}/month*\n'
-          '${res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• With Financed MRTT: *${_fmt(res.monthlyInstallmentWithInsurance)}/month*\n' : ''}'
+          '• *Monthly Instalment:* *${_fmt(res.monthlyInstallmentWithInsurance)}/month*\n'
           '• Min. Recommended Household Net Income: ${_fmt(res.recommendedIncome)}\n'
+          '${res.pricePsf != null ? '• Price PSF: RM ${res.pricePsf!.toStringAsFixed(1)}/sqft\n' : ''}'
+          '${res.rentalYield != null ? '• Gross Rental Yield: ${res.rentalYield!.toStringAsFixed(2)}%\n' : ''}'
           '---------------------------------\n'
           '💼 *INITIAL CASH REQUIRED (ENTRY COST)*\n'
-          '• Cash Downpayment: ${_fmt(res.downPaymentAmount)}\n'
-          '• SPA Stamp Duty: ${_fmt(res.stampDuty)} ${res.stampDuty < res.originalStampDuty ? '*(Saved ${_fmt(res.originalStampDuty - res.stampDuty)} 1st Home)*' : ''}\n'
-          '• Legal Fees (SRO): ${_fmt(res.legalFees)}\n'
-          '• Valuation Fee: ${_fmt(res.valuationFee)}\n'
-          '${res.fireInsuranceAnnual > 0 ? '• Fire Insurance (1st yr): ${_fmt(res.fireInsuranceAnnual)}\n' : ''}'
-          '${!res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• MRTT Insurance (Cash): ${_fmt(res.mrttEstimate)}\n' : ''}'
+          '• Cash Downpayment: ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+          '• SPA Stamp Duty (MOT): ${res.freeSpaMot ? 'RM 0 *(Free / Absorbed)*' : _fmt(res.stampDuty)}\n'
+          '• SPA Legal Fees: ${res.freeSpaLegal ? 'RM 0 *(Free / Absorbed)*' : _fmt(res.legalFees)}\n'
+          '• Loan Legal & Stamp Duty: ${res.freeLoanLegal || res.financeLoanDoc ? (res.financeLoanDoc ? 'RM 0 *(Financed)*' : 'RM 0 *(Free)*') : _fmt(res.loanLegalFees + res.loanStampDuty)}\n'
+          '• Valuation Fee: ${res.financeValuation ? 'RM 0 *(Financed)*' : _fmt(res.valuationFee)}\n'
+          '${res.clttMrttAmount > 0 ? '• ${res.insuranceType}: ${res.clttMrttFinanced ? 'RM 0 *(Financed into Loan)*' : _fmt(res.clttMrttAmount)}\n' : ''}'
           '👉 *TOTAL INITIAL CASH:* *${_fmt(res.totalUpfrontWithInsurance)}*'
           '$sig';
     }
 
     // Default: BM
-    return '🏡 *[ANGGARAN PINJAMAN RUMAH & KOS MASUK]*\n\n'
-        '💰 *Harga Hartanah:* ${_fmt(res.propertyPrice)}\n'
-        '💵 *Deposit Tunai (${res.downPaymentPercent.toInt()}%):* ${_fmt(res.downPaymentAmount)}\n'
-        '🏦 *Jumlah Pinjaman:* ${_fmt(res.loanAmount)}\n'
+    return '🏡 *$catHeader*\n\n'
+        '💰 *Harga Hartanah (SPA):* ${_fmt(res.propertyPrice)}\n'
+        '${res.developerDiscountAmount > 0 ? '🎁 *Rebat Pemaju (${res.developerDiscountPercent.toInt()}%):* -${_fmt(res.developerDiscountAmount)}\n' : ''}'
+        '💵 *Deposit Bersih Tunai:* ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+        '🏦 *Pinjaman Asas:* ${_fmt(res.loanAmount)}\n'
+        '${res.totalFinancedLoan > res.loanAmount ? '💳 *Jumlah Pinjaman Dibiayai:* *${_fmt(res.totalFinancedLoan)}*\n' : ''}'
         '---------------------------------\n'
-        '📊 *ANGGARAN BULANAN*\n'
-        '• *Ansuran Bulanan:* *${_fmt(res.monthlyInstallment)}/bulan*\n'
-        '${res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• Termasuk MRTT: *${_fmt(res.monthlyInstallmentWithInsurance)}/bulan*\n' : ''}'
+        '📊 *ANGGARAN BULANAN (SELEPAS MUQASAH)*\n'
+        '• *Ansuran Bulanan:* *${_fmt(res.monthlyInstallmentWithInsurance)}/bulan*\n'
         '• Cadangan Gaji Bersih Minimum: ${_fmt(res.recommendedIncome)}\n'
+        '${res.pricePsf != null ? '• Harga Sekaki (PSF): RM ${res.pricePsf!.toStringAsFixed(1)}/sqft\n' : ''}'
+        '${res.rentalYield != null ? '• Hasil Sewaan Kasar (Yield): ${res.rentalYield!.toStringAsFixed(2)}%\n' : ''}'
         '---------------------------------\n'
         '💼 *TUNAI DIPERLUKAN (KOS MASUK)*\n'
-        '• Deposit Tunai: ${_fmt(res.downPaymentAmount)}\n'
-        '• Duti Setem SPA: ${_fmt(res.stampDuty)} ${res.stampDuty < res.originalStampDuty ? '*(Jimat ${_fmt(res.originalStampDuty - res.stampDuty)} Rumah Pertama)*' : ''}\n'
-        '• Yuran Guaman: ${_fmt(res.legalFees)}\n'
-        '• Yuran Penilaian: ${_fmt(res.valuationFee)}\n'
-        '${res.fireInsuranceAnnual > 0 ? '• Insurans Kebakaran (Thn 1): ${_fmt(res.fireInsuranceAnnual)}\n' : ''}'
-        '${!res.isInsuranceFinanced && res.mrttEstimate > 0 ? '• Insurans MRTT (Tunai): ${_fmt(res.mrttEstimate)}\n' : ''}'
+        '• Deposit Tunai: ${_fmt(max(0.0, res.downPaymentAmount - res.developerDiscountAmount))}\n'
+        '• Duti Setem MOT: ${res.freeSpaMot ? 'RM 0 *(Ditanggung Pemaju)*' : _fmt(res.stampDuty)}\n'
+        '• Yuran Guaman SPA: ${res.freeSpaLegal ? 'RM 0 *(Ditanggung Pemaju)*' : _fmt(res.legalFees)}\n'
+        '• Guaman & Duti Pinjaman: ${res.freeLoanLegal || res.financeLoanDoc ? (res.financeLoanDoc ? 'RM 0 *(Dimasukkan Pinjaman)*' : 'RM 0 *(Percuma)*') : _fmt(res.loanLegalFees + res.loanStampDuty)}\n'
+        '• Yuran Penilaian: ${res.financeValuation ? 'RM 0 *(Dimasukkan Pinjaman)*' : _fmt(res.valuationFee)}\n'
+        '${res.clttMrttAmount > 0 ? '• ${res.insuranceType}: ${res.clttMrttFinanced ? 'RM 0 *(Dimasukkan Pinjaman)*' : _fmt(res.clttMrttAmount)}\n' : ''}'
         '👉 *TOTAL TUNAI KOS MASUK:* *${_fmt(res.totalUpfrontWithInsurance)}*'
         '$sig';
   }

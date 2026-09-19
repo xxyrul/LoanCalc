@@ -8,6 +8,8 @@ import 'screens/mortgage_tab.dart';
 import 'screens/dsr_tab.dart';
 import 'screens/lppsa_tab.dart';
 import 'screens/updater_screen.dart';
+import 'services/notification_service.dart';
+import 'services/update_service.dart';
 import 'widgets/agent_dialog.dart';
 
 void main() async {
@@ -122,11 +124,34 @@ class MainHomeScreen extends StatefulWidget {
 class _MainHomeScreenState extends State<MainHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  UpdateReleaseInfo? _availableUpdate;
+  bool _bannerDismissed = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initNotifications();
+  }
+
+  void _initNotifications() {
+    NotificationService.requestPermission();
+    NotificationService.init(onRouteSelected: (route) {
+      if (route == 'updater' && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (ctx) => UpdaterScreen(lang: widget.lang)),
+        );
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final update = await NotificationService.checkForUpdateAndNotify(lang: widget.lang);
+      if (update != null && mounted) {
+        setState(() {
+          _availableUpdate = update;
+        });
+      }
+    });
   }
 
   @override
@@ -244,7 +269,12 @@ class _MainHomeScreenState extends State<MainHomeScreen>
               // In-App Updater Page Button
               IconButton(
                 tooltip: AppStrings.tr('appUpdater', widget.lang),
-                icon: const Icon(Icons.system_update_alt_rounded),
+                icon: Badge(
+                  isLabelVisible: _availableUpdate != null,
+                  backgroundColor: theme.colorScheme.primary,
+                  smallSize: 8,
+                  child: const Icon(Icons.system_update_alt_rounded),
+                ),
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -288,12 +318,79 @@ class _MainHomeScreenState extends State<MainHomeScreen>
           ),
           body: SafeArea(
             bottom: true,
-            child: TabBarView(
-              controller: _tabController,
+            child: Column(
               children: [
-                MortgageTab(lang: widget.lang, agentProfile: widget.agentProfile),
-                DsrTab(lang: widget.lang, agentProfile: widget.agentProfile),
-                LppsaTab(lang: widget.lang, agentProfile: widget.agentProfile),
+                if (_availableUpdate != null && !_bannerDismissed)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.rocket_launch_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${AppStrings.tr('updateNotificationTitle', widget.lang)} (${_availableUpdate!.versionTag})',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => UpdaterScreen(lang: widget.lang),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          child: Text(
+                            AppStrings.tr('updateBannerAction', widget.lang),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                          onPressed: () => setState(() => _bannerDismissed = true),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      MortgageTab(lang: widget.lang, agentProfile: widget.agentProfile),
+                      DsrTab(lang: widget.lang, agentProfile: widget.agentProfile),
+                      LppsaTab(lang: widget.lang, agentProfile: widget.agentProfile),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
